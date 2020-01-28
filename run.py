@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#import sys
+#sys.path    # Displays all search paths
+
 import math
 import os
 import time
@@ -10,7 +13,6 @@ from parser_model import ParserModel
 from torch import nn, optim
 from tqdm import tqdm
 from utils.parser_utils import minibatches, load_and_preprocess_data, AverageMeter
-
 
 # -----------------
 # Primary Functions
@@ -75,12 +77,27 @@ def train_for_epoch(parser, train_data, dev_data, optimizer, loss_func, batch_si
             ### YOUR CODE HERE (~5-10 lines)
             ### TODO:
             ###      1) Run train_x forward through model to produce `logits`
+            logits = parser.model(train_x)
+            print("Step 1 worked!!!")
             ###      2) Use the `loss_func` parameter to apply the PyTorch CrossEntropyLoss function.
             ###         This will take `logits` and `train_y` as inputs. It will output the CrossEntropyLoss
             ###         between softmax(`logits`) and `train_y`. Remember that softmax(`logits`)
             ###         are the predictions (y^ from the PDF).
+            ###         https://pytorch.org/docs/stable/nn.html#crossentropyloss
+            ### input = torch.randn(3, 5, requires_grad=True)
+            ### target = torch.empty(3, dtype=torch.long).random_(5)
+            loss = loss_func(logits, train_y)
+            print("Step 2 worked!!!  Loss = ", loss)
+            ### output.backward()
+            
             ###      3) Backprop losses
+            loss.backward()
+            print("Step 3 worked!!!")
+            
             ###      4) Take step with the optimizer
+            optimizer.step()
+            print("Step 4 worked!!!")
+
             ### Please see the following docs for support:
             ###     Optimizer Step: https://pytorch.org/docs/stable/optim.html#optimizer-step
 
@@ -99,8 +116,8 @@ def train_for_epoch(parser, train_data, dev_data, optimizer, loss_func, batch_si
 
 if __name__ == "__main__":
     # Note: Set debug to False, when training on entire corpus
-    debug = True
-    # debug = False
+    #debug = True
+    debug = False
 
     assert (torch.__version__ >= "1.0.0"), "Please install torch version 1.0.0 or above"
 

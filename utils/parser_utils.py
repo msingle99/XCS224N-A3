@@ -32,7 +32,8 @@ class Config(object):
     train_file = 'train.conll'
     dev_file = 'dev.conll'
     test_file = 'test.conll'
-    embedding_file = './data/en-cw.txt'
+#    embedding_file = './data/en-cw.txt'
+    embedding_file = 'Y:\XCS224N-A3\data\en-cw.txt'
 
 
 class Parser(object):
@@ -348,12 +349,18 @@ def load_and_preprocess_data(reduced=True):
 
     print("Loading data...",)
     start = time.time()
-    train_set = read_conll(os.path.join(config.data_path, config.train_file),
-                           lowercase=config.lowercase)
-    dev_set = read_conll(os.path.join(config.data_path, config.dev_file),
-                         lowercase=config.lowercase)
-    test_set = read_conll(os.path.join(config.data_path, config.test_file),
-                          lowercase=config.lowercase)
+#    train_set = read_conll(os.path.join(config.data_path, config.train_file), lowercase=config.lowercase)
+#   dev_set = read_conll(os.path.join(config.data_path, config.dev_file), lowercase=config.lowercase)
+#   test_set = read_conll(os.path.join(config.data_path, config.test_file), lowercase=config.lowercase)
+    
+    path = r'Y:\XCS224N-A3\data';
+    train_file = path + '\\train.conll'
+    dev_file = path + '\\dev.conll'
+    test_file = path + '\\test.conll'
+    train_set = read_conll(train_file, lowercase=config.lowercase)
+    dev_set = read_conll(dev_file, lowercase=config.lowercase)
+    test_set = read_conll(test_file, lowercase=config.lowercase)
+   
     if reduced:
         train_set = train_set[:1000]
         dev_set = dev_set[:500]
@@ -417,3 +424,4 @@ class AverageMeter(object):
 
 if __name__ == '__main__':
     pass
+

@@ -21,18 +21,10 @@ class PartialParse(object):
         self.sentence = sentence
 
         ### YOUR CODE HERE (3 Lines)
-        ### Your code should initialize the following fields:
-        ###     self.stack: The current stack represented as a list with the top of the stack as the
-        ###                 last element of the list.
-        ###     self.buffer: The current buffer represented as a list with the first item on the
-        ###                  buffer as the first item of the list
-        ###     self.dependencies: The list of dependencies produced so far. Represented as a list of
-        ###             tuples where each tuple is of the form (head, dependent).
-        ###             Order for this list doesn't matter.
-        ###
-        ### Note: The root token should be represented with the string "ROOT"
-        ###
-
+        self.stack = ['ROOT']       # stack.append('word') appends item 'word' to list called 'stack'
+                                    # del stack[-1] removes the last (rightmost) element of the list called 'stack'
+        self.buffer = sentence.copy()      # del buffer[0] will remove the first (leftmost) element from list 'buffer'
+        self.dependencies = []      # dep.append(('a','b')) appends tuple ('a','b') to list called 'dep'
         ### END YOUR CODE
 
     def parse_step(self, transition):
@@ -47,10 +39,20 @@ class PartialParse(object):
         ### TODO:
         ###     Implement a single parsing step, i.e. the logic for the following as
         ###     described in the pdf handout:
-        ###         1. Shift
-        ###         2. Left Arc
-        ###         3. Right Arc
-
+        ###         1. Shift: removes the first word from the buffer and pushes it onto the stack
+        ###         2. Left Arc: marks the second (second most recently added) item on the stack as a dependent
+        ###            of the first item and removes the second item from the stack.
+        ###         3. Right Arc: marks the first (most recently added) item on the stack as a depedent of the 
+        ###            second item and removes the first item from the stack.
+        if transition=="S":
+            self.stack.append(self.buffer[0])
+            del self.buffer[0]
+        elif transition=="LA":
+            self.dependencies.append((self.stack[-1], self.stack[-2]))
+            del self.stack[-2]
+        elif transition=="RA":
+            self.dependencies.append((self.stack[-2], self.stack[-1]))
+            del self.stack[-1]
         ### END YOUR CODE
 
     def parse(self, transitions):
@@ -97,6 +99,42 @@ def minibatch_parse(sentences, model, batch_size):
     ###             contains references to the same objects. Thus, you should NOT use the `del` operator
     ###             to remove objects from the `unfinished_parses` list. This will free the underlying memory that
     ###             is being accessed by `partial_parses` and may cause your code to crash.
+
+    ### PartialParse.minibatch_parse() receives a list of sentences top parse, a reference to a model object with a predict() method to predict the next transition, and a batch_size
+    ### It initializes two lists: partial_parses, a list of PartialParse objects; and unfinished_parses, a shallow copy of partial_parses.
+    ### •	Instructions say = makes a shallow copy, but I don’t think that’s right
+    ### •	Use list.copy or list[:] to make a shallow copy.
+    ### 	a = [1,2]
+    ###     o	b=a.copy() or b=a[:]
+    ###         •	Then, elementwise changes to b WILL affect the corresponding element of a, but “list-level” operations on b will not affect a
+    ###     o	b.append(3)		- should not affect a
+    ###     o	b[0].append(3)		- should affect a
+#    sentences=[['this','is','sentence','one'],['this','is','sentence','two'],['this','is','sentence','three'],['this','is','sentence','four'],['this','is','sentence','five']]
+#    BATCH_SIZE = 3
+#    model = DummyModel()
+    
+    partial_parses = [PartialParse(s) for s in sentences]
+    unfinished_parses = partial_parses.copy()
+    
+    ### Loop until all sentences are completely parsed
+    while len(unfinished_parses) != 0:
+        ### It selects a list of the first [batch_size] elements of unfinished_parses (“BATCH”), and sends that list to model.predict(), which will return a list of predicted transitions for each unfinished parse.
+        if len(unfinished_parses) >= batch_size:
+            batch = unfinished_parses[:batch_size]  
+        else:
+                batch = unfinished_parses 
+        transitions = model.predict(batch)
+
+    ### Apply transitions
+        [batch[i].parse_step(transitions[i]) for i in range(len(batch))]   
+    
+    ### Iterate over BATCH, and remove those parses having empty buffer and stack size of 1 from the unfinished_parses list 
+        for pp in reversed(range(len(batch))):
+            if (len(batch[pp].stack)==1) & (len(batch[pp].buffer)==0):
+                unfinished_parses.pop(pp) 
+    
+    ### Build a final list of dependency parses to return to the caller
+    dependencies = [pp.dependencies for pp in partial_parses]
 
     ### END YOUR CODE
 

@@ -20,6 +20,7 @@ class ParserModel(nn.Module):
             you should add the "self." prefix layers, values, etc. that you want to utilize
             in other ParserModel methods.
         - For further documentation on "nn.Module" please see https://pytorch.org/docs/stable/nn.html.
+        - https://pytorch.org/tutorials/beginner/blitz/neural_networks_tutorial.html#sphx-glr-beginner-blitz-neural-networks-tutorial-py
     """
 
     def __init__(self, embeddings, n_features=36,
@@ -45,9 +46,17 @@ class ParserModel(nn.Module):
         ### TODO:
         ###     1) Construct `self.embed_to_hidden` linear layer, initializing the weight matrix
         ###         with the `nn.init.xavier_uniform_` function with `gain = 1` (default)
+        self.embed_to_hidden = nn.Linear(self.n_features*self.embed_size, self.hidden_size)
+        nn.init.xavier_uniform_(self.embed_to_hidden.weight)
+        
         ###     2) Construct `self.dropout` layer.
+        self.dropout = nn.Dropout(p=self.dropout_prob)
+        
         ###     3) Construct `self.hidden_to_logits` linear layer, initializing the weight matrix
         ###         with the `nn.init.xavier_uniform_` function with `gain = 1` (default)
+        self.hidden_to_logits = nn.Linear(self.hidden_size, self.n_classes)
+        nn.init.xavier_uniform_(self.hidden_to_logits.weight)
+       
         ###
         ### Note: Here, we use Xavier Uniform Initialization for our Weight initialization.
         ###         It has been shown empirically, that this provides better initial weights
@@ -72,9 +81,11 @@ class ParserModel(nn.Module):
 
             PyTorch Notes:
                 - `self.pretrained_embeddings` is a torch.nn.Embedding object that we defined in __init__
-                - Here `t` is a tensor where each row represents a list of features. Each feature is represented by an integer (input token).
+                - Here `t` is a tensor where each row represents a list of features. Each feature is represented 
+                  by an integer (input token).
                 - In PyTorch the Embedding object, e.g. `self.pretrained_embeddings`, allows you to
-                    go from an index to embedding. Please see the documentation (https://pytorch.org/docs/stable/nn.html#torch.nn.Embedding)
+                    go from an index to embedding. Please see the documentation 
+                    (https://pytorch.org/docs/stable/nn.html#torch.nn.Embedding)
                     to learn how to use `self.pretrained_embeddings` to extract the embeddings for your tensor `t`.
 
             @param t (Tensor): input tensor of tokens (batch_size, n_features)
@@ -85,12 +96,15 @@ class ParserModel(nn.Module):
         ### YOUR CODE HERE (~1-3 Lines)
         ### TODO:
         ###     1) Use `self.pretrained_embeddings` to lookup the embeddings for the input tokens in `t`.
+        t_emb = self.pretrained_embeddings(t)
         ###     2) After you apply the embedding lookup, you will have a tensor shape (batch_size, n_features, embedding_size).
         ###         Use the tensor `view` method to reshape the embeddings tensor to (batch_size, n_features * embedding_size)
         ###
         ### Note: In order to get batch_size, you may need use the tensor .size() function:
         ###         https://pytorch.org/docs/stable/tensors.html#torch.Tensor.size
-        ###
+        batch_size, n_features, embedding_size = t_emb.size()
+        x = t_emb.view(batch_size, n_features* embedding_size)
+        
         ###  Please see the following docs for support:
         ###     Embedding Layer: https://pytorch.org/docs/stable/nn.html#torch.nn.Embedding
         ###     View: https://pytorch.org/docs/stable/tensors.html#torch.Tensor.view
@@ -120,10 +134,17 @@ class ParserModel(nn.Module):
         ###  YOUR CODE HERE (~3-5 lines)
         ### TODO:
         ###     1) Apply `self.embedding_lookup` to `t` to get the embeddings
+        emb = self.embedding_lookup(t)
+        print(emb)
         ###     2) Apply `embed_to_hidden` linear layer to the embeddings
+        hidden = self.embed_to_hidden(emb)
+        print(hidden)
         ###     3) Apply relu non-linearity to the output of step 2 to get the hidden units.
+        relu = nn.functional.relu(hidden)
         ###     4) Apply dropout layer to the output of step 3.
+        drop = self.dropout(relu)
         ###     5) Apply `hidden_to_logits` layer to the output of step 4 to get the logits.
+        logits = self.hidden_to_logits(drop)
         ###
         ### Note: We do not apply the softmax to the logits here, because
         ### the loss function (torch.nn.CrossEntropyLoss) applies it more efficiently.
@@ -133,3 +154,33 @@ class ParserModel(nn.Module):
 
         ### END YOUR CODE
         return logits
+
+#############################
+# To test forward() method: #
+#############################
+        
+# 1. Run all code in parser_utils.py except for:
+#    from .parser_transitions import minibatch_parse
+#    from .general_utils import get_minibatches
+# 2. Tools > Preferences > Current Working Directory --> Y:/XCS224N-A3/utils
+# 3. Run "load_and_preprocess_data()" function (to create "embeddings" object)
+# 4. Run "model = ParserModel(embeddings_matrix)"
+# 5. Create tensor t: run code below         
+# 6. Run "output = model(t)"
+#    This should return some numbers after forward() function is filled in.
+        
+t = torch.tensor([[5155, 5156, 2429, 89, 2430, 2431, 101, 5155, 103, 5155, 5155, 5155,
+                            5155, 5155, 5155, 5155, 5155, 5155, 83, 84, 43, 52, 50, 43,
+                            54, 83, 48, 83, 83, 83, 83, 83, 83, 83, 83, 83],
+                           [2936, 89, 2937, 92, 138, 1451, 5155, 5155, 5155, 5155, 5155, 5155,
+                            5155, 5155, 5155, 5155, 5155, 5155, 50, 52, 54, 51, 59, 44,
+                            83, 83, 83, 83, 83, 83, 83, 83, 83, 83, 83, 83],
+                           [2429, 338, 86, 250, 88, 101, 5155, 5155, 5155, 5155, 5155, 5155,
+                            287, 5155, 85, 5155, 5155, 5155, 43, 39, 45, 47, 40, 54,
+                            83, 83, 83, 83, 83, 83, 40, 83, 41, 83, 83, 83],
+                           [5155, 5156, 2051, 144, 4412, 86, 91, 97, 96, 5155, 5155, 5155,
+                            5155, 5155, 5155, 5155, 5155, 5155, 83, 84, 39, 71, 42, 45,
+                            40, 62, 61, 83, 83, 83, 83, 83, 83, 83, 83, 83],
+                           [5156, 571, 86, 535, 401, 92, 5155, 5155, 5155, 5155, 5155, 5155,
+                            267, 1054, 5155, 5155, 5155, 1278, 84, 44, 45, 43, 39, 51,
+                            83, 83, 83, 83, 83, 83, 56, 53, 83, 83, 83, 44]])
